@@ -1,0 +1,36 @@
+#!/bin/sh -eu
+error_out() {
+    echo "error line=$1, error=$2 $?"
+    exit ${2:=0}
+}
+trap 'error_out $LINENO $?' INT TERM 0
+readonly FLAVOUR=pyneo
+readonly ARCH=x86_64
+readonly DATE=$(date +%Y%m%d)
+readonly IMG=void-live-${ARCH}-${DATE}-${FLAVOUR}.iso
+case "${ARCH}" in
+	i686*) GRUB_PKGS="grub";;
+	x86_64*) GRUB_PKGS="grub-x86_64-efi";;
+	*) GRUB_PKGS="";;
+esac
+readonly BASE_PKGS="dialog cryptsetup lvm2 mdadm ${GRUB_PKGS}"
+readonly X_PKGS="${BASE_PKGS} xorg-minimal xorg-input-drivers xorg-video-drivers setxkbmap xauth font-misc-misc terminus-font dejavu-fonts-ttf alsa-plugins-pulseaudio"
+readonly XFCE_PKGS="${X_PKGS} lxdm xfce4 gnome-themes-standard gnome-keyring network-manager-applet gvfs-afc gvfs-mtp gvfs-smb udisks2 firefox-esr"
+readonly PKGS="${XFCE_PKGS} darktable libreoffice libreoffice-i18n-de rxvt-unicode vim inetutils-syslog screen zsh mpv netsurf gvim cifs-utils"
+umask 022
+./mklive.sh -a ${ARCH} -o ${IMG} -p "${PKGS}"
+echo Copy to stick.
+dd if=${IMG} of=/dev/sdb
+if [ -e partition3/ ]; then
+	echo Create additional partition.
+	echo ,,L|sfdisk -a /dev/sdb
+	echo Create filesystem.
+	mke2fs -L installer -F /dev/sdb3
+	echo Copy files.
+	mkdir -p /mnt/stick
+	mount /dev/sdb3 /mnt/stick
+	rsync --archive --verbose partition3/. /mnt/stick/.
+	umount /mnt/stick
+fi
+echo Done.
+exit 0
