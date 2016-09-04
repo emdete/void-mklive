@@ -1349,6 +1349,48 @@ fi
 #
 # main()
 #
+
+if [ -e /dev/sdb3 ]; then
+    mount /dev/sdb3 /mnt
+    if [ -e /mnt/void-installer.conf ] ; then
+        dialog \
+            --colors \
+            --keep-tite \
+            --no-shadow \
+            --no-mouse \
+            --backtitle 'Void Linux installation -- http://www.voidlinux.eu/' \
+            --title 'Unattended install' \
+            --yesno 'The whole harddisk will be purged, voidlinux installed and the system rebooted. Proceed?' 16 80 \
+            || DIE
+        cp -v /mnt/void-installer.conf /tmp/.void-installer.conf
+        LOG=/dev/tty0
+        SOURCE_DONE=1
+        HOSTNAME_DONE=1
+        KEYBOARD_DONE=1
+        LOCALE_DONE=1
+        TIMEZONE_DONE=1
+        ROOTPASSWORD_DONE=1
+        USERLOGIN_DONE=1
+        USERPASSWORD_DONE=1
+        USERNAME_DONE=1
+        USERGROUPS_DONE=1
+        BOOTLOADER_DONE=1
+        PARTITIONS_DONE=1
+        #NETWORK_DONE=1
+        FILESYSTEMS_DONE=1
+        DIALOG() {
+            echo > $ANSWER
+            echo $@
+            return 0
+            }
+        sfdisk -uS /dev/sda <<EOF
+,4194304,L,*
+,,L
+EOF
+        menu_install
+        exit 0
+    fi
+fi
 DIALOG --title "${BOLD}${RED} Enter the void ... ${RESET}" --msgbox "\n
 Welcome to the Void Linux installation. A simple and minimal \
 Linux distribution made from scratch and built from the source package tree \
